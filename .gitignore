@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+number2addresses.txt
+*.dat
+.idea/
+db/
+small/
+view/
