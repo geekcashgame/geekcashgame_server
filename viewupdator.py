@@ -13,7 +13,7 @@ import util
 import os
 import threading
 
-html_root = "/Users/Fred/Documents/html/"
+html_root = "/Users/Fred/Projects/Python/GeekCashGame/geekcashgame.github.io/"
 
 
 def get_index_json_file():

@@ -14,21 +14,21 @@ large_bet_address_dict = {}
 large_address_number_dict = {}
 large_number_address_dict = {}
 
-dev_reward_address = ""
+dev_reward_address = "GTDC6VoAALQtEra9n5tNu41PogPTojkqg2"
 
 bet_level_min_amount_dict = {
-    1: 20,
-    2: 50,
-    3: 100,
+    1: 1000,
+    2: 10000,
+    3: 100000,
 }
 
 
 def init_addresses():
-    global dev_reward_address
+    #global dev_reward_address
     global small_bet_address_dict, small_address_number_dict, small_number_address_dict
     global big_bet_address_dict, big_address_number_dict, big_number_address_dict
     global large_bet_address_dict, large_address_number_dict, large_number_address_dict
-    dev_reward_address = api.get_or_create_address(dev_reward_account)
+    #dev_reward_address = api.get_or_create_address(dev_reward_account)
     # init small addresses
     for x in range(10):
         account_name = "{}{}".format(small_bet_account_name_prefix, x)
