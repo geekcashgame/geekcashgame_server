@@ -2,6 +2,7 @@ from peewee import *
 import datetime
 import os
 import random
+import log
 
 db_root = "./db/"
 db_bet_name = "bets.db"
@@ -24,6 +25,7 @@ class DBBetRound(Model):
     start_block = IntegerField()
     settled_block = IntegerField()
     block_nonce = IntegerField()
+    update_at = DateTimeField(default=datetime.datetime.now())
     created_at = DateTimeField(default=datetime.datetime.now())
 
     class Meta:
@@ -96,7 +98,7 @@ def save_new_bet_list(_bet_list, _bet_level):
                 dbbet = None
 
             if dbbet is None:
-                print("New bet: ", bet["join_txid"], bet["bet_amount"])
+                log.Info("New bet: {} {}".format(bet["join_txid"], bet["bet_amount"]))
                 DBBet.create(
                     join_txid=bet["join_txid"],
                     join_block_height=bet["join_block_height"],
@@ -117,14 +119,20 @@ def save_settlement_bet_list(_dbbet_list):
         return
 
     with db.atomic():
+        now = datetime.datetime.now()
         for dbbet in _dbbet_list:
+            dbbet.update_at = now
             dbbet.save()
 
 
 def get_last_game_round_number(_bet_level):
-    result = DBBet.select(fn.Max(DBBet.game_round)).where(DBBet.bet_level == _bet_level).scalar()
+    # result = DBBet.select(fn.Max(DBBet.game_round)).where(DBBet.bet_level == _bet_level).scalar()
+    #if result is None:
+    #    return 0
+    #return result
+    result = DBBetRound.select(fn.Max(DBBetRound.bet_round)).where(DBBetRound.bet_level == _bet_level).scalar()
     if result is None:
-        return 0
+        return -1
     return result
 
 
@@ -255,7 +263,7 @@ def get_recently_unsettle_bet_list():
 
 
 def get_recently_settled_bet_list(_limit):
-    result = DBBet.select().where(DBBet.bet_state != -1).order_by(DBBet.created_at.desc()).limit(_limit)
+    result = DBBet.select().where(DBBet.bet_state != -1).order_by(DBBet.update_at.desc()).limit(_limit)
     return result
 
 
@@ -266,7 +274,7 @@ def get_recently_winner_list(_bet_level, _limit):
 
 def init_db():
     if not os.path.exists(db_root):
-        print("To Create database dir!")
+        log.Info("To Create database dir!")
         os.mkdir(db_root)
     db.connect()
     db.create_tables([DBBet])

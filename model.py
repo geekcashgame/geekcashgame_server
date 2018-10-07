@@ -17,9 +17,9 @@ large_number_address_dict = {}
 dev_reward_address = "GTDC6VoAALQtEra9n5tNu41PogPTojkqg2"
 
 bet_level_min_amount_dict = {
-    1: 1000,
-    2: 10000,
-    3: 100000,
+    1: 20,
+    2: 50,
+    3: 80,
 }
 
 

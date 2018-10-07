@@ -3,6 +3,7 @@ import json
 import time
 from decimal import Decimal
 import datetime
+import log
 
 def get_current_strtime():
     return time.strftime('%Y-%m-%d %H:%M:%S')
@@ -11,7 +12,7 @@ def get_current_strtime():
 def log(log_str):
     sys_time = get_current_strtime()
     slog = '[{0}] {1}'.format(sys_time, log_str)
-    print(slog)
+    log.Info(slog)
 
 
 def get_format_json(data):
@@ -81,6 +82,6 @@ def http_post_request(url, params, add_to_headers=None):
     postdata = json.dumps(params)
 
     response = requests.post(url, postdata, headers=headers, timeout=10)
-    print(response.text)
+    log.Info(response.text)
     json_obj = json.loads(response.text)
     return json_obj

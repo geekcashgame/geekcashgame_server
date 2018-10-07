@@ -12,8 +12,15 @@ import json
 import util
 import os
 import threading
+import log
 
-html_root = "/Users/Fred/Projects/Python/GeekCashGame/geekcashgame.github.io/"
+is_release = False
+
+
+if is_release:
+    html_root = "/Users/Fred/Projects/Python/GeekCashGame/geekcashgame.github.io/"
+else:
+    html_root = "/Users/Fred/Documents/html/"
 
 
 def get_index_json_file():
@@ -68,7 +75,7 @@ class CurrBetInfo(object):
         return {
             "round": self.round,
             "bet_count": self.bet_count,
-            "bet_amount": self.bet_amount,
+            "bet_amount": util.get_precision(self.bet_amount, 2),
         }
 
 
@@ -440,11 +447,11 @@ def generate_bets_data_json(_bet_level, _bet_round):
 def publish_thread():
     os.chdir(html_root)
     result = os.popen("git add .").read()
-    print("Add Result: ", result)
+    log.Info("Add Result: ", result)
     result = os.popen('git commit -m "Update"').read()
-    print("Commit Result: ", result)
+    log.Info("Commit Result: ", result)
     result = os.popen("git push origin master").read()
-    print("Commit Result: ", result)
+    log.Info("Commit Result: ", result)
 
 
 def update_view(_small_settled_round_list, _big_settled_round_list, _large_settled_round_list):
@@ -460,15 +467,16 @@ def update_view(_small_settled_round_list, _big_settled_round_list, _large_settl
     for round in _large_settled_round_list:
         generate_bets_data_json(3, round)
 
-    t = threading.Thread(target=publish_thread)
-    t.setDaemon(True)
-    t.start()
+    #t = threading.Thread(target=publish_thread)
+    #t.setDaemon(True)
+    #t.start()
 
 
 
 
 
 
+#log.init_logger()
 #model.init_addresses()
 #db.init_db()
 #generate_index_data_json()

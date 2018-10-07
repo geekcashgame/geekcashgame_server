@@ -1,5 +1,6 @@
 from bitcoinrpc.authproxy import AuthServiceProxy
 import util
+import log
 
 rpc_user = "NiPEL9gATxuo"
 rpc_password = "2h4GvkQnWCqXmAnYBaucRe8Ik5d5g7TB"
@@ -31,11 +32,11 @@ def get_or_create_address(_account_name):
 # Send all balance from unspent list to one address, The test result is: unspent_list max 500,
 def send_to_address_from_unspent_list(unspent_list, to_address):
     if unspent_list is None or len(unspent_list) == 0:
-        print("No unspent list!")
+        log.Info("No unspent list!")
         return -1
 
     if to_address is None:
-        print("No to address!")
+        log.Info("No to address!")
         return -1
 
     input_list = []
@@ -55,32 +56,43 @@ def send_to_address_from_unspent_list(unspent_list, to_address):
     send_dict[to_address] = total_send
 
     if total_send <= 0.0:
-        print("No enough money, send faild!")
+        log.Info("No enough money, send faild!")
         return -1
 
     transaction_hash = rpc.createrawtransaction(input_list, send_dict)
     signed_hex = rpc.signrawtransaction(transaction_hash)['hex']
     out_txid = rpc.sendrawtransaction(signed_hex)
 
-    print("Balance: {}, send: {}, fee: {}, out_txid: {}".format(total_balance, total_send, fee, out_txid))
+    log.Info("Balance: {}, send: {}, fee: {}, out_txid: {}".format(total_balance, total_send, fee, out_txid))
     return out_txid
 
 
-def send_all_unspent_list_to_address(_to_address):
+def send_all_unspent_list_to_address(_to_address, max_count=-1):
     unspent_list = rpc.listunspent()
-    if unspent_list is not None and len(unspent_list) > 0:
-        return send_to_address_from_unspent_list(unspent_list, _to_address)
-    return None
+    if max_count < 1:
+        if unspent_list is not None and len(unspent_list) > 0:
+            return send_to_address_from_unspent_list(unspent_list, _to_address)
+        return None
+    else:
+        if unspent_list is not None and len(unspent_list) > 0:
+            unspent_count = len(unspent_list)
+            if unspent_count > max_count:
+                unspent_count = max_count
+
+            unspent_list = unspent_list[:unspent_count]
+            return send_to_address_from_unspent_list(unspent_list, _to_address)
+        return None
+
 
 
 # send money from unspent to many address, and change to one address
 def send_to_many_from_unspent_list(unspent_list, to_dict, change_address):
     if unspent_list is None or len(unspent_list) == 0:
-        print("No unspent list!")
+        log.Info("No unspent list!")
         return -1
 
     if to_dict is None or len(to_dict) == 0:
-        print("No to dict!")
+        log.Info("No to dict!")
         return -1
 
     input_list = list()
@@ -102,7 +114,7 @@ def send_to_many_from_unspent_list(unspent_list, to_dict, change_address):
     change_amount = total_balance - total_send - fee
     change_amount = util.get_precision(change_amount, 8)
     if change_amount < 0:
-        print("No enough money to send, balance: {}, send: {}".format(total_balance, total_send))
+        log.Info("No enough money to send, balance: {}, send: {}".format(total_balance, total_send))
         return -1
 
     to_dict[change_address] = change_amount
@@ -111,7 +123,7 @@ def send_to_many_from_unspent_list(unspent_list, to_dict, change_address):
     signed_hex = rpc.signrawtransaction(transaction_hash)['hex']
     out_txid = rpc.sendrawtransaction(signed_hex)
 
-    print(
+    log.Info(
         "Balance: {}, send: {}, fee: {}, change: {}, out_txid: {}".format(total_balance, total_send, fee, change_amount,
                                                                           out_txid))
     return out_txid
@@ -127,7 +139,7 @@ def send_to_many_from_input_txid_list(_input_txid_list, _to_dict, _change_addres
     for txid in _input_txid_list:
         unspent = unspent_dict.get(txid, None)
         if unspent is None:
-            print("Fatal Error, can not found unspent in unspent list: ", txid)
+            log.Info("Fatal Error, can not found unspent in unspent list: {}".format(txid))
             return None
         input_unspent_list.append(unspent)
 
@@ -154,8 +166,17 @@ def get_block_hash_nonce_timestamp_by_height(_block_height):
     return block_hash, nonce, timestamp
 
 
-def get_unspent_list_by_address(_address):
-    unspent_list = rpc.listunspent(0, 999999999, [_address])
+def get_unspent_list_by_address(_address, _sort=False):
+    unspent_list = rpc.listunspent(1, 999999999, [_address])
+    if _sort:
+        unspent_list.sort(reverse=True, key=lambda item: item["amount"])
+    return unspent_list
+
+
+def get_unspent_list(_sort=False):
+    unspent_list = rpc.listunspent(1,999999999)
+    if _sort:
+        unspent_list.sort(reverse=True, key=lambda item: item["amount"])
     return unspent_list
 
 
@@ -177,14 +198,14 @@ def get_input_addresses(_txid):
                 input_address = vout_info["scriptPubKey"]["addresses"][0]
                 break
         if input_address is None:
-            print("Error, get input address faild!")
+            log.Info("Error, get input address faild!")
         input_address_list.append(input_address)
     return input_address_list
 
 
 def get_block_height_hash_timestamp_by_txid(_txid):
     raw_transaction = get_raw_transaction_info(_txid)
-    print("Raw Transacion: ", raw_transaction)
+    log.Info("Raw Transacion: {}".format(raw_transaction))
     if "height" in raw_transaction:
         height = raw_transaction["height"]
         hash = raw_transaction["blockhash"]
@@ -193,9 +214,75 @@ def get_block_height_hash_timestamp_by_txid(_txid):
     return -1,-1,-1
 
 
+def get_address_balance(_address):
+    unspent_list = get_unspent_list_by_address(_address)
+    total_balance = 0
+    if unspent_list is not None:
+        for unspent in unspent_list:
+            amount = unspent['amount']
+            total_balance += amount
+
+    total_balance = util.get_precision(total_balance, 8)
+    return total_balance
+
+
+def get_account_balance(_account_name):
+    total_balance = 0
+    unspent_list = get_unspent_list()
+    for unspent in unspent_list:
+        if unspent["account"] == _account_name:
+            total_balance += unspent["amount"]
+
+    total_balance = util.get_precision(total_balance, 8)
+    return total_balance
+
+
+def send(_from_address, _to_address, _amount):
+    balance = get_address_balance(_from_address)
+    if balance < _amount + 0.5:
+        log.Info("No enough money to send {} from {} to {}".format(_amount, _from_address, _to_address))
+        return -1
+
+    selected_unspent = []
+    unspent_list = get_unspent_list_by_address(_from_address, True)
+    selected_input_amount = 0
+    for unspent in unspent_list:
+        selected_unspent.append(unspent)
+        selected_input_amount += unspent["amount"]
+        if selected_input_amount > _amount + 0.5:
+            break
+
+    return send_to_many_from_unspent_list(selected_unspent, {_to_address: _amount}, _from_address)
+
+
+def send_to_many(_from_address, _to_dict):
+    total_send = 0
+    for address in _to_dict:
+        total_send += _to_dict[address]
+
+    balance = get_address_balance(_from_address)
+    if balance < total_send + 0.5:
+        log.Info("No enough money to send! {} -> {}",balance, total_send)
+        return -1
+
+    selected_unspent = []
+    unspent_list = get_unspent_list_by_address(_from_address, True)
+    selected_input_amount = 0
+    for unspent in unspent_list:
+        selected_unspent.append(unspent)
+        selected_input_amount += unspent["amount"]
+        if selected_input_amount > total_send + 0.5:
+            break
+
+    return send_to_many_from_unspent_list(selected_unspent, _to_dict, _from_address)
+
+
+
+
+
 
 #result = send_all_unspent_list_to_address("Gcx6ce8xpSjpNJPd9SrPYdhZ2Nim2eEhyQ")
-#print(result)
+#log.Info(result)
 
 
 """
@@ -207,13 +294,13 @@ address_list = []
 for x in range(500, 1001):
     account_name = "sub_{}".format(x)
     addresses = rpc.getaddressesbyaccount(account_name)
-    print("account_name: ", account_name, "address: ", addresses)
+    log.Info("account_name: ", account_name, "address: ", addresses)
     address_list += addresses
 
-print(address_list)
+log.Info(address_list)
 unspent_list = rpc.listunspent(min_conf, max_conf, address_list)
-print(unspent_list)
-print("Count: ", len(unspent_list))
+log.Info(unspent_list)
+log.Info("Count: ", len(unspent_list))
 
 to_address = "GdKLkjAoWLfP169x5b4AsKkXaABsaGbUJp"
 send_to_address_from_unspent_list(unspent_list, to_address)
@@ -230,13 +317,13 @@ send_to_address_from_unspent_list(unspent_list, to_address)
 
 '''
 best_block_hash = rpc_connection.getbestblockhash()
-print(rpc_connection.getblock(best_block_hash))
+log.Info(rpc_connection.getblock(best_block_hash))
 
 unspent_list = rpc_connection.listunspent()
-print(unspent_list)
+log.Info(unspent_list)
 
 result = rpc_connection.getrawtransaction("df98dad818a057daf5daf644dd61eb9034644d2e202a17755821661f6081e264", 1)
-print(result)
+log.Info(result)
 '''
 
 '''
@@ -254,14 +341,14 @@ out_dict = {
 }
 
 raw_transaction = rpc_connection.createrawtransaction(input_list, out_dict)
-print(raw_transaction)
+log.Info(raw_transaction)
 '''
 
 '''
 signed_raw_transaction_result = rpc_connection.signrawtransaction(raw_transaction)
-print(signed_raw_transaction_result)
-print(signed_raw_transaction_result['hex'])
+log.Info(signed_raw_transaction_result)
+log.Info(signed_raw_transaction_result['hex'])
 send_txid = rpc_connection.sendrawtransaction(signed_raw_transaction_result['hex'])
-print("txid:")
-print(send_txid)
+log.Info("txid:")
+log.Info(send_txid)
 '''

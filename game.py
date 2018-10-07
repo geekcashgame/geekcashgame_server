@@ -5,6 +5,8 @@ import util
 import datetime
 import viewupdator
 import model
+import log
+import traceback
 
 
 # bet_address_dict = {}  # account - address
@@ -41,7 +43,7 @@ def step1_try_save_bet_list(_curr_block_height, _bet_level):
         bet_address_dict = model.large_bet_address_dict
         bet_address_number_dict = model.large_address_number_dict
     else:
-        print("Error!, Wrong Diff Level: {}".format(_bet_level))
+        log.Info("Error!, Wrong Diff Level: {}".format(_bet_level))
         return
 
     curr_game_round = db.get_curr_unsettle_game_round(_bet_level)
@@ -55,19 +57,20 @@ def step1_try_save_bet_list(_curr_block_height, _bet_level):
 
                 bet_number = bet_address_number_dict.get(bet_address, None)
                 if bet_number is None:
-                    print("Fatal Error, get bet number error! {}".format(bet_address))
+                    log.Info("Fatal Error, get bet number error! {}".format(bet_address))
                     return
 
                 unspent_txid = unspent["txid"]
                 join_block_height, join_block_hash, join_block_timestamp = \
                     api.get_block_height_hash_timestamp_by_txid(unspent["txid"])
 
+                # 这里确保当前的unspent确认了后，再保存
                 if join_block_height == -1 or join_block_hash == -1 or join_block_timestamp == -1:
                     continue
 
                 input_address_list = api.get_input_addresses(unspent_txid)
                 if len(input_address_list) == 0:
-                    print("Fatal Error, get input address faild! {}".format(unspent_txid))
+                    log.Info("Fatal Error, get input address faild! {}".format(unspent_txid))
                     return
 
                 bet_data["join_txid"] = unspent_txid
@@ -99,7 +102,7 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
     bet_dict = {}
 
     for bet in unsettle_bet_list:
-        print("###############: ", bet.join_txid, bet.join_block_hash, bet.bet_number)
+        log.Info("###############: {} {} {}".format(bet.join_txid, bet.join_block_hash, bet.bet_number))
         if min_block_height < 0 or bet.join_block_height < min_block_height:
             min_block_height = bet.join_block_height
 
@@ -120,7 +123,7 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
         selected_bet_list = []
         has_loser = False
         has_winer = False
-        print("Check Block: ", block, "Nonce: ", block_nonce)
+        log.Info("Check Block: {} {} {}".format(block, "Nonce: ", block_nonce))
         for txid in bet_dict:
             dbbet = bet_dict[txid]
             if dbbet.join_block_height < check_block:
@@ -133,7 +136,7 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
                     else:
                         has_loser = True
 
-        print("Has winer: ", has_winer, "Has Loaser: ", has_loser)
+        log.Info("Has winer: {} {} {}".format(has_winer, "Has Loaser: ", has_loser))
 
         if has_winer and has_loser:
             winer_list = []
@@ -141,14 +144,19 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
             total_loser_amount = 0.0
             total_winer_amount = 0.0
             for dbbet in selected_bet_list:
-                if dbbet.bet_number == nonce_last_number:
-                    winer_list.append(dbbet)
-                    total_winer_amount += dbbet.bet_amount
-                    dbbet.bet_state = 1
-                else:
+                if dbbet.bet_amount < min_bet_amount:
                     loser_list.append(dbbet)
                     total_loser_amount += dbbet.bet_amount
                     dbbet.bet_state = 0
+                else:
+                    if dbbet.bet_number == nonce_last_number:
+                        winer_list.append(dbbet)
+                        total_winer_amount += dbbet.bet_amount
+                        dbbet.bet_state = 1
+                    else:
+                        loser_list.append(dbbet)
+                        total_loser_amount += dbbet.bet_amount
+                        dbbet.bet_state = 0
 
                 dbbet.settlement_block_height = check_block
                 dbbet.settlement_block_hash = block_hash
@@ -156,12 +164,12 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
 
                 del bet_dict[dbbet.join_txid]
 
-            print("Winer Count: ", len(winer_list), "Loser Count: ", len(loser_list))
-            print("Total winer amount: ", total_winer_amount, "Total loser amount: ", total_loser_amount)
+            log.Info("Winer Count: {} {} {}".format(len(winer_list), "Loser Count: ", len(loser_list)))
+            log.Info("Total winer amount: {} {} {}".format(total_winer_amount, "Total loser amount: ", total_loser_amount))
             total_reward = total_loser_amount * (1 - dev_reward_percentage)
             total_reward = util.get_precision(total_reward, 8)
             dev_reward = total_loser_amount - total_reward
-            print("Total winer reward: ", total_reward, "dev reward: ", dev_reward)
+            log.Info("Total winer reward: {} {} {}".format(total_reward, "dev reward: ", dev_reward))
 
             pay_input_txid_list = []
             to_dict = {}
@@ -176,8 +184,7 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
                 pay_amount = util.get_precision(pay_amount, 8)
                 to_dict[dbbet.payment_address] = pay_amount
                 pay_input_txid_list.append(dbbet.join_txid)
-                print("Txid: ", dbbet.join_txid, "bet amount: ", dbbet.bet_amount, "reward %: ", reward_percentage,
-                      "reward: ", reward_amount, "payment: ", pay_amount)
+                log.Info("Txid {} bet_amount: {} reward%: {}  reward:{}  payment:{}".format(dbbet.join_txid, dbbet.bet_amount, reward_percentage, reward_amount, pay_amount))
 
             for dbbet in loser_list:
                 pay_input_txid_list.append(dbbet.join_txid)
@@ -185,7 +192,7 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
             pay_reward_txid = api.send_to_many_from_input_txid_list(pay_input_txid_list, to_dict, model.dev_reward_address)
 
             if pay_reward_txid == -1:
-                print("Error! Payment Faild!")
+                log.Info("Error! Payment Faild!")
 
             settled_bet_list = []
             for dbbet in winer_list:
@@ -193,14 +200,16 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
                 dbbet.reward_txid = pay_reward_txid
                 dbbet.update_at = datetime.datetime.now()
                 settled_bet_list.append(dbbet)
-                print("Winer: ", dbbet.join_txid, "Join Height: ", dbbet.join_block_height, "address: ",
-                      dbbet.payment_address, "bet number: ", dbbet.bet_number)
+                log.Info("Winner: {}  join_height: {}  address:{}  bet_number: {}".format(
+                    dbbet.join_txid, dbbet.join_block_height, dbbet.payment_address, dbbet.bet_number
+                ))
 
             for dbbet in loser_list:
                 dbbet.update_at = datetime.datetime.now()
                 settled_bet_list.append(dbbet)
-                print("Loser: ", dbbet.join_txid, "Join Height: ", dbbet.join_block_height, "address: ",
-                      dbbet.payment_address, "bet number: ", dbbet.bet_number, "Bet Amount: ", dbbet.bet_amount)
+                log.Info("Loser: {}  Join_height: {}  address: {}  bet_number: {}  bet_amount: {}".format(
+                    dbbet.join_txid, dbbet.join_block_height, dbbet.payment_address, dbbet.bet_number, dbbet.bet_amount
+                ))
 
             # last_game_round = db.get_last_game_round_number(_bet_level)
             curr_game_round = db.get_curr_unsettle_game_round(_bet_level)
@@ -234,7 +243,7 @@ def step2_try_settle_bets(_curr_block_height, _bet_level):
 
 
 def on_block_height_changed(_curr_block_height):
-    print("On Block Height Changed: ", _curr_block_height)
+    log.Info("On Block Height Changed: {}".format(_curr_block_height))
     step1_try_save_bet_list(_curr_block_height, 1)
     small_settled_game_round_list = step2_try_settle_bets(_curr_block_height, 1)
 
@@ -248,17 +257,25 @@ def on_block_height_changed(_curr_block_height):
 
 
 def game_loop():
-    global prev_block_height
-    while True:
-        # try:
-        curr_block_height = api.get_current_block_height()
-        print("Current Block Height: {} {}".format(curr_block_height, int(time.time())))
-        if curr_block_height != prev_block_height:
-            prev_block_height = curr_block_height
-            on_block_height_changed(curr_block_height)
-        time.sleep(1)
+    try:
+        global prev_block_height
+        while True:
+            # try:
+            curr_block_height = api.get_current_block_height()
+            #log.Info("Current Block Height: {} {}".format(curr_block_height, int(time.time())))
+            if curr_block_height != prev_block_height:
+                prev_block_height = curr_block_height
+                on_block_height_changed(curr_block_height)
+            time.sleep(1)
+    except Exception as e:
+        _ex_str = traceback.print_exc()
+        # print(_ex_str)
+        if _ex_str is not None:
+            log.Info("Exception: " + _ex_str)
 
 
+
+log.init_logger()
 model.init_addresses()
 db.init_db()
 game_loop()
