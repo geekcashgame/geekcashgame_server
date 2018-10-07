@@ -46,7 +46,7 @@ def choose_bet_amount(_min_bet_amount, _player_address):
 
     return balance
 
-
+'''
 def take_small_bet(_player_number, _number, _amount):
     log.Info("Start Take Samll Bet ----------------")
     bet_address = model.get_small_bet_address_by_number(_number)
@@ -54,8 +54,18 @@ def take_small_bet(_player_number, _number, _amount):
     api.send(player_address, bet_address, _amount)
     log.Info("Small Bet Player_{} -> Number {}  Amount: {}".format(_player_number, _number, _amount))
     log.Info("End Take Samll Bet ----------------")
+'''
 
 
+def take_small_bet(_player_number, _address, _amount):
+    log.Info("Start Take Samll Bet ----------------")
+    bet_address = _address
+    player_address = get_player_address(_player_number)
+    api.send(player_address, bet_address, _amount)
+    log.Info("Small Bet Player_{} -> Number {}  Amount: {}".format(_player_number, _address, _amount))
+    log.Info("End Take Samll Bet ----------------")
+
+'''
 def take_big_bet(_player_number, _number, _amount):
     log.Info("Start Take Big Bet ----------------")
     bet_address = model.get_big_bet_address_by_number(_number)
@@ -63,8 +73,18 @@ def take_big_bet(_player_number, _number, _amount):
     api.send(player_address, bet_address, _amount)
     log.Info("Big Bet Player_{} -> Number {}  Amount: {}".format(_player_number, _number, _amount))
     log.Info("End Take Big Bet ----------------")
+'''
 
 
+def take_big_bet(_player_number, _address, _amount):
+    log.Info("Start Take Big Bet ----------------")
+    bet_address = _address;
+    player_address = get_player_address(_player_number)
+    api.send(player_address, bet_address, _amount)
+    log.Info("Big Bet Player_{} -> Number {}  Amount: {}".format(_player_number, _address, _amount))
+    log.Info("End Take Big Bet ----------------")
+
+'''
 def take_rare_bet(_player_number, _number, _amount):
     log.Info("Start Take Rare Bet ----------------")
     bet_address = model.get_large_bet_address_by_number(_number)
@@ -72,13 +92,22 @@ def take_rare_bet(_player_number, _number, _amount):
     api.send(player_address, bet_address, _amount)
     log.Info("Rare Bet Player_{} -> Number {}  Amount: {}".format(_player_number, _number, _amount))
     log.Info("End Take Rare Bet ----------------")
+'''
+
+def take_rare_bet(_player_number, _address, _amount):
+    log.Info("Start Take Rare Bet ----------------")
+    bet_address = _address
+    player_address = get_player_address(_player_number)
+    api.send(player_address, bet_address, _amount)
+    log.Info("Rare Bet Player_{} -> Number {}  Amount: {}".format(_player_number, _address, _amount))
+    log.Info("End Take Rare Bet ----------------")
 
 
 def send_balance_from_bank():
     send_dict = {}
     for account in player_address_dict:
         address = player_address_dict[account]
-        send_dict[address] = 2300
+        send_dict[address] = 2500
 
     bank_address = api.get_or_create_address("bank")
     print(send_dict)
@@ -96,7 +125,7 @@ show_all_player_balance()
 
 #send_balance_from_bank()
 
-#take_small_bet(2, 2, 29)
+#take_small_bet(6, "GURJ8TWR86NjABqkkr4J9vQBMuAer2yT5W", 1000)
 
 #take_big_bet(7, 3, 51)
 #take_big_bet(8, 3, 31)
