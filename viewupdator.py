@@ -14,11 +14,11 @@ import os
 import threading
 import log
 
-is_release = False
+is_release = True
 
 
 if is_release:
-    html_root = "/Users/Fred/Projects/Python/GeekCashGame/geekcashgame.github.io/"
+    html_root = "../geekcashgame.github.io/"
 else:
     html_root = "/Users/Fred/Documents/html/"
 
