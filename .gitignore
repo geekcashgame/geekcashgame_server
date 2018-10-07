@@ -3,6 +3,5 @@ __pycache__/
 number2addresses.txt
 *.dat
 .idea/
-db/
 small/
 view/
