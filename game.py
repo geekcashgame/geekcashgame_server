@@ -253,7 +253,7 @@ def on_block_height_changed(_curr_block_height):
     step1_try_save_bet_list(_curr_block_height, 3)
     large_settled_game_round_list = step2_try_settle_bets(_curr_block_height, 3)
 
-    viewupdator.update_view(small_settled_game_round_list, big_settled_game_round_list, large_settled_game_round_list)
+    viewupdator.update_view(small_settled_game_round_list, big_settled_game_round_list, large_settled_game_round_list, _curr_block_height)
 
 
 def game_loop():

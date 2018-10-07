@@ -248,7 +248,8 @@ class BetLevel(object):
 
 
 class PageIndex(object):
-    def __init__(self):
+    def __init__(self, _curr_block_height):
+        self.curr_block_height = _curr_block_height
         self.small_bets = BetLevel(1).get_json_obj()
         self.big_bets = BetLevel(2).get_json_obj()
         self.large_bets = BetLevel(3).get_json_obj()
@@ -264,6 +265,7 @@ class PageIndex(object):
             "large_bets": self.large_bets,
             "recently_unsettle_bets": self.recently_unsettle_bets,
             "recently_settled_bets": self.recently_settled_bets,
+            "curr_block_height":self.curr_block_height
         }
 
     def init_recently_unsettle_bets(self):
@@ -413,8 +415,8 @@ class PageRoundBets(object):
 
 
 
-def generate_index_data_json():
-    page_index = PageIndex().get_json_obj()
+def generate_index_data_json(_curr_block_height):
+    page_index = PageIndex(_curr_block_height).get_json_obj()
     json_str = json.dumps(page_index)
     with open(get_index_json_file(), "w", encoding="utf-8") as f:
         f.write(json_str)
@@ -447,15 +449,15 @@ def generate_bets_data_json(_bet_level, _bet_round):
 def publish_thread():
     os.chdir(html_root)
     result = os.popen("git add .").read()
-    log.Info("Add Result: {}".format(result))
+    #log.Info("Add Result: {}".format(result))
     result = os.popen('git commit -m "Update"').read()
-    log.Info("Commit Result: {}".format(result))
+    #log.Info("Commit Result: {}".format(result))
     result = os.popen("git push origin master").read()
-    log.Info("Commit Result: {}".format(result))
+    #log.Info("Commit Result: {}".format(result))
 
 
-def update_view(_small_settled_round_list, _big_settled_round_list, _large_settled_round_list):
-    generate_index_data_json()
+def update_view(_small_settled_round_list, _big_settled_round_list, _large_settled_round_list, _current_block):
+    generate_index_data_json(_current_block)
     generate_history_data_json()
 
     for round in _small_settled_round_list:
@@ -467,9 +469,10 @@ def update_view(_small_settled_round_list, _big_settled_round_list, _large_settl
     for round in _large_settled_round_list:
         generate_bets_data_json(3, round)
 
-    t = threading.Thread(target=publish_thread)
-    t.setDaemon(True)
-    t.start()
+    if is_release:
+        t = threading.Thread(target=publish_thread)
+        t.setDaemon(True)
+        t.start()
 
 
 
