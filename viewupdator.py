@@ -447,11 +447,11 @@ def generate_bets_data_json(_bet_level, _bet_round):
 def publish_thread():
     os.chdir(html_root)
     result = os.popen("git add .").read()
-    log.Info("Add Result: ", result)
+    log.Info("Add Result: {}".format(result))
     result = os.popen('git commit -m "Update"').read()
-    log.Info("Commit Result: ", result)
+    log.Info("Commit Result: {}".format(result))
     result = os.popen("git push origin master").read()
-    log.Info("Commit Result: ", result)
+    log.Info("Commit Result: {}".format(result))
 
 
 def update_view(_small_settled_round_list, _big_settled_round_list, _large_settled_round_list):
