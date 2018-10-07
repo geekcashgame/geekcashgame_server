@@ -14,7 +14,7 @@ large_bet_address_dict = {}
 large_address_number_dict = {}
 large_number_address_dict = {}
 
-dev_reward_address = "GTDC6VoAALQtEra9n5tNu41PogPTojkqg2"
+dev_reward_address = "GYyqBrZACm63e1rmskcDXmbExSrffm14pt"
 
 bet_level_min_amount_dict = {
     1: 1000,
