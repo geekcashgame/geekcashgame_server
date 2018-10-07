@@ -18,8 +18,8 @@ is_release = True
 
 
 if is_release:
-    html_root = "../geekcashgame.github.io/"
-    #html_root = "/var/www/geekcashgame.github.io/"
+    #html_root = "../geekcashgame.github.io/"
+    html_root = "/var/www/geekcashgame.github.io/"
 else:
     html_root = "/Users/Fred/Documents/html/"
 
