@@ -467,9 +467,9 @@ def update_view(_small_settled_round_list, _big_settled_round_list, _large_settl
     for round in _large_settled_round_list:
         generate_bets_data_json(3, round)
 
-    #t = threading.Thread(target=publish_thread)
-    #t.setDaemon(True)
-    #t.start()
+    t = threading.Thread(target=publish_thread)
+    t.setDaemon(True)
+    t.start()
 
 
 
