@@ -18,7 +18,8 @@ is_release = True
 
 
 if is_release:
-    html_root = "../geekcashgame.github.io/"
+    #html_root = "../geekcashgame.github.io/"
+    html_root = "/var/www/geekcashgame.github.io/"
 else:
     html_root = "/Users/Fred/Documents/html/"
 
@@ -469,10 +470,10 @@ def update_view(_small_settled_round_list, _big_settled_round_list, _large_settl
     for round in _large_settled_round_list:
         generate_bets_data_json(3, round)
 
-    if is_release:
-        t = threading.Thread(target=publish_thread)
-        t.setDaemon(True)
-        t.start()
+    #if is_release:
+    #    t = threading.Thread(target=publish_thread)
+    #    t.setDaemon(True)
+    #    t.start()
 
 
 
